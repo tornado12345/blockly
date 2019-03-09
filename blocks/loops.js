@@ -38,7 +38,7 @@ goog.require('Blockly');
 
 /**
  * Unused constant for the common HSV hue for all blocks in this category.
- * @deprecated Use Blockly.Msg.LOOPS_HUE. (2018 April 5)
+ * @deprecated Use Blockly.Msg['LOOPS_HUE']. (2018 April 5)
  */
 Blockly.Constants.Loops.HUE = 120;
 
@@ -59,7 +59,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     }],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "tooltip": "%{BKY_CONTROLS_REPEAT_TOOLTIP}",
     "helpUrl": "%{BKY_CONTROLS_REPEAT_HELPURL}"
   },
@@ -82,7 +82,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     }],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "tooltip": "%{BKY_CONTROLS_REPEAT_TOOLTIP}",
     "helpUrl": "%{BKY_CONTROLS_REPEAT_HELPURL}"
   },
@@ -112,7 +112,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     }],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "helpUrl": "%{BKY_CONTROLS_WHILEUNTIL_HELPURL}",
     "extensions": ["controls_whileUntil_tooltip"]
   },
@@ -153,7 +153,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     "inputsInline": true,
     "previousStatement": null,
     "nextStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "helpUrl": "%{BKY_CONTROLS_FOR_HELPURL}",
     "extensions": [
       "contextMenu_newGetVariableBlock",
@@ -183,7 +183,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
     }],
     "previousStatement": null,
     "nextStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "helpUrl": "%{BKY_CONTROLS_FOREACH_HELPURL}",
     "extensions": [
       "contextMenu_newGetVariableBlock",
@@ -203,7 +203,7 @@ Blockly.defineBlocksWithJsonArray([  // BEGIN JSON EXTRACT
       ]
     }],
     "previousStatement": null,
-    "colour": "%{BKY_LOOPS_HUE}",
+    "style": "loop_blocks",
     "helpUrl": "%{BKY_CONTROLS_FLOW_STATEMENTS_HELPURL}",
     "extensions": [
       "controls_flow_tooltip",
@@ -266,10 +266,11 @@ Blockly.Constants.Loops.CUSTOM_CONTEXT_MENU_CREATE_VARIABLES_GET_MIXIN = {
     if (!this.isCollapsed() && varName != null) {
       var option = {enabled: true};
       option.text =
-          Blockly.Msg.VARIABLES_SET_CREATE_GET.replace('%1', varName);
+          Blockly.Msg['VARIABLES_SET_CREATE_GET'].replace('%1', varName);
       var xmlField = Blockly.Variables.generateVariableFieldDom(variable);
-      var xmlBlock = goog.dom.createDom('block', null, xmlField);
+      var xmlBlock = document.createElement('block');
       xmlBlock.setAttribute('type', 'variables_get');
+      xmlBlock.appendChild(xmlField);
       option.callback = Blockly.ContextMenu.callbackFactory(this, xmlBlock);
       options.push(option);
     }
@@ -330,7 +331,7 @@ Blockly.Constants.Loops.CONTROL_FLOW_IN_LOOP_CHECK_MIXIN = {
         this.setDisabled(false);
       }
     } else {
-      this.setWarningText(Blockly.Msg.CONTROLS_FLOW_STATEMENTS_WARNING);
+      this.setWarningText(Blockly.Msg['CONTROLS_FLOW_STATEMENTS_WARNING']);
       if (!this.isInFlyout && !this.getInheritedDisabled()) {
         this.setDisabled(true);
       }

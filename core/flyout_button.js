@@ -26,7 +26,8 @@
 
 goog.provide('Blockly.FlyoutButton');
 
-goog.require('goog.dom');
+goog.require('Blockly.utils');
+
 goog.require('goog.math.Coordinate');
 
 
@@ -74,21 +75,11 @@ Blockly.FlyoutButton = function(workspace, targetWorkspace, xml, isLabel) {
   this.isLabel_ = isLabel;
 
   /**
-   * Function to call when this button is clicked.
-   * @type {function(!Blockly.FlyoutButton)}
+   * The key to the function called when this button is clicked.
+   * @type {string}
    * @private
    */
-  this.callback_ = null;
-
-  var callbackKey = xml.getAttribute('callbackKey');
-  if (this.isLabel_ && callbackKey) {
-    console.warn('Labels should not have callbacks. Label text: ' + this.text_);
-  } else if (!this.isLabel_ &&
-      !(callbackKey && targetWorkspace.getButtonCallback(callbackKey))) {
-    console.warn('Buttons should have callbacks. Button text: ' + this.text_);
-  } else {
-    this.callback_ = targetWorkspace.getButtonCallback(callbackKey);
-  }
+  this.callbackKey_ = xml.getAttribute('callbackKey');
 
   /**
    * If specified, a CSS class to add to this button.
@@ -161,7 +152,7 @@ Blockly.FlyoutButton.prototype.createDom = function() {
         'text-anchor': 'middle'
       },
       this.svgGroup_);
-  svgText.textContent = this.text_;
+  svgText.textContent = Blockly.utils.replaceMessageReferences(this.text_);
 
   this.width = Blockly.Field.getCachedWidth(svgText);
   this.height = 20;  // Can't compute it :(
@@ -179,8 +170,8 @@ Blockly.FlyoutButton.prototype.createDom = function() {
 
   this.updateTransform_();
 
-  this.mouseUpWrapper_ = Blockly.bindEventWithChecks_(this.svgGroup_, 'mouseup',
-      this, this.onMouseUp_);
+  this.onMouseUpWrapper_ = Blockly.bindEventWithChecks_(
+      this.svgGroup_, 'mouseup', this, this.onMouseUp_);
   return this.svgGroup_;
 };
 
@@ -238,7 +229,7 @@ Blockly.FlyoutButton.prototype.dispose = function() {
     Blockly.unbindEvent_(this.onMouseUpWrapper_);
   }
   if (this.svgGroup_) {
-    goog.dom.removeNode(this.svgGroup_);
+    Blockly.utils.removeNode(this.svgGroup_);
     this.svgGroup_ = null;
   }
   this.workspace_ = null;
@@ -256,8 +247,12 @@ Blockly.FlyoutButton.prototype.onMouseUp_ = function(e) {
     gesture.cancel();
   }
 
-  // Call the callback registered to this button.
-  if (this.callback_) {
-    this.callback_(this);
+  if (this.isLabel_ && this.callbackKey_) {
+    console.warn('Labels should not have callbacks. Label text: ' + this.text_);
+  } else if (!this.isLabel_ && !(this.callbackKey_ &&
+      this.targetWorkspace_.getButtonCallback(this.callbackKey_))) {
+    console.warn('Buttons should have callbacks. Button text: ' + this.text_);
+  } else if (!this.isLabel_) {
+    this.targetWorkspace_.getButtonCallback(this.callbackKey_)(this);
   }
 };
