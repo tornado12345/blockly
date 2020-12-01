@@ -1,21 +1,7 @@
 /**
  * @license
- * Visual Blocks Editor
- *
- * Copyright 2018 Google Inc.
- * https://developers.google.com/blockly/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -36,28 +22,39 @@ goog.provide('Blockly.Events.Move');  // Deprecated.
 
 goog.require('Blockly.Events');
 goog.require('Blockly.Events.Abstract');
-goog.require('Blockly.Xml.utils');
-
-goog.require('goog.math.Coordinate');
+goog.require('Blockly.registry');
+goog.require('Blockly.utils.Coordinate');
+goog.require('Blockly.utils.object');
+goog.require('Blockly.utils.xml');
+// TODO: Fix recursive dependency.
+// goog.require('Blockly.Xml');
 
 
 /**
  * Abstract class for a block event.
- * @param {Blockly.Block} block The block this event corresponds to.
+ * @param {!Blockly.Block=} opt_block The block this event corresponds to.
+ *     Undefined for a blank event.
  * @extends {Blockly.Events.Abstract}
  * @constructor
  */
-Blockly.Events.BlockBase = function(block) {
+Blockly.Events.BlockBase = function(opt_block) {
   Blockly.Events.BlockBase.superClass_.constructor.call(this);
+  this.isBlank = typeof opt_block == 'undefined';
 
   /**
    * The block id for the block this event pertains to
    * @type {string}
    */
-  this.blockId = block.id;
-  this.workspaceId = block.workspace.id;
+  this.blockId = this.isBlank ? '' : opt_block.id;
+
+  /**
+   * The workspace identifier for this event.
+   * @type {string}
+   */
+  this.workspaceId = this.isBlank ? '' : opt_block.workspace.id;
 };
-goog.inherits(Blockly.Events.BlockBase, Blockly.Events.Abstract);
+Blockly.utils.object.inherits(Blockly.Events.BlockBase,
+    Blockly.Events.Abstract);
 
 /**
  * Encode the event as JSON.
@@ -74,39 +71,42 @@ Blockly.Events.BlockBase.prototype.toJson = function() {
  * @param {!Object} json JSON representation.
  */
 Blockly.Events.BlockBase.prototype.fromJson = function(json) {
-  Blockly.Events.BlockBase.superClass_.toJson.call(this);
+  Blockly.Events.BlockBase.superClass_.fromJson.call(this, json);
   this.blockId = json['blockId'];
 };
 
 /**
  * Class for a block change event.
- * @param {Blockly.Block} block The changed block.  Null for a blank event.
- * @param {string} element One of 'field', 'comment', 'disabled', etc.
- * @param {?string} name Name of input or field affected, or null.
- * @param {*} oldValue Previous value of element.
- * @param {*} newValue New value of element.
+ * @param {!Blockly.Block=} opt_block The changed block.  Undefined for a blank
+ *     event.
+ * @param {string=} opt_element One of 'field', 'comment', 'disabled', etc.
+ * @param {?string=} opt_name Name of input or field affected, or null.
+ * @param {*=} opt_oldValue Previous value of element.
+ * @param {*=} opt_newValue New value of element.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
-Blockly.Events.Change = function(block, element, name, oldValue, newValue) {
-  if (!block) {
+Blockly.Events.Change = function(opt_block, opt_element, opt_name, opt_oldValue,
+    opt_newValue) {
+  Blockly.Events.Change.superClass_.constructor.call(this, opt_block);
+  if (!opt_block) {
     return;  // Blank event to be populated by fromJson.
   }
-  Blockly.Events.Change.superClass_.constructor.call(this, block);
-  this.element = element;
-  this.name = name;
-  this.oldValue = oldValue;
-  this.newValue = newValue;
+  this.element = typeof opt_element == 'undefined' ? '' : opt_element;
+  this.name = typeof opt_name == 'undefined' ? '' : opt_name;
+  this.oldValue = typeof opt_oldValue == 'undefined' ? '' : opt_oldValue;
+  this.newValue = typeof opt_newValue == 'undefined' ? '' : opt_newValue;
 };
-goog.inherits(Blockly.Events.Change, Blockly.Events.BlockBase);
+Blockly.utils.object.inherits(Blockly.Events.Change, Blockly.Events.BlockBase);
 
 /**
  * Class for a block change event.
- * @param {Blockly.Block} block The changed block.  Null for a blank event.
- * @param {string} element One of 'field', 'comment', 'disabled', etc.
- * @param {?string} name Name of input or field affected, or null.
- * @param {*} oldValue Previous value of element.
- * @param {*} newValue New value of element.
+ * @param {!Blockly.Block=} opt_block The changed block.  Undefined for a blank
+ *     event.
+ * @param {string=} opt_element One of 'field', 'comment', 'disabled', etc.
+ * @param {?string=} opt_name Name of input or field affected, or null.
+ * @param {*=} opt_oldValue Previous value of element.
+ * @param {*=} opt_newValue New value of element.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
@@ -171,25 +171,22 @@ Blockly.Events.Change.prototype.run = function(forward) {
     case 'field':
       var field = block.getField(this.name);
       if (field) {
-        // Run the validator for any side-effects it may have.
-        // The validator's opinion on validity is ignored.
-        field.callValidator(value);
         field.setValue(value);
       } else {
         console.warn("Can't set non-existent field: " + this.name);
       }
       break;
     case 'comment':
-      block.setCommentText(value || null);
+      block.setCommentText(/** @type {string} */ (value) || null);
       break;
     case 'collapsed':
-      block.setCollapsed(value);
+      block.setCollapsed(!!value);
       break;
     case 'disabled':
-      block.setDisabled(value);
+      block.setEnabled(!value);
       break;
     case 'inline':
-      block.setInputsInline(value);
+      block.setInputsInline(!!value);
       break;
     case 'mutation':
       var oldMutation = '';
@@ -198,9 +195,8 @@ Blockly.Events.Change.prototype.run = function(forward) {
         oldMutation = oldMutationDom && Blockly.Xml.domToText(oldMutationDom);
       }
       if (block.domToMutation) {
-        value = value || '<mutation></mutation>';
-        var dom = Blockly.Xml.textToDom('<xml>' + value + '</xml>');
-        block.domToMutation(dom.firstChild);
+        var dom = Blockly.Xml.textToDom(/** @type {string} */ (value) || '<mutation/>');
+        block.domToMutation(dom);
       }
       Blockly.Events.fire(new Blockly.Events.Change(
           block, 'mutation', null, oldMutation, value));
@@ -212,28 +208,34 @@ Blockly.Events.Change.prototype.run = function(forward) {
 
 /**
  * Class for a block creation event.
- * @param {Blockly.Block} block The created block.  Null for a blank event.
+ * @param {!Blockly.Block=} opt_block The created block.  Undefined for a blank
+ *     event.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
-Blockly.Events.Create = function(block) {
-  if (!block) {
+Blockly.Events.Create = function(opt_block) {
+  Blockly.Events.Create.superClass_.constructor.call(this, opt_block);
+  if (!opt_block) {
     return;  // Blank event to be populated by fromJson.
   }
-  Blockly.Events.Create.superClass_.constructor.call(this, block);
-
-  if (block.workspace.rendered) {
-    this.xml = Blockly.Xml.blockToDomWithXY(block);
-  } else {
-    this.xml = Blockly.Xml.blockToDom(block);
+  if (opt_block.isShadow()) {
+    // Moving shadow blocks is handled via disconnection.
+    this.recordUndo = false;
   }
-  this.ids = Blockly.Events.getDescendantIds_(block);
+
+  if (opt_block.workspace.rendered) {
+    this.xml = Blockly.Xml.blockToDomWithXY(opt_block);
+  } else {
+    this.xml = Blockly.Xml.blockToDom(opt_block);
+  }
+  this.ids = Blockly.Events.getDescendantIds(opt_block);
 };
-goog.inherits(Blockly.Events.Create, Blockly.Events.BlockBase);
+Blockly.utils.object.inherits(Blockly.Events.Create, Blockly.Events.BlockBase);
 
 /**
  * Class for a block creation event.
- * @param {Blockly.Block} block The created block. Null for a blank event.
+ * @param {!Blockly.Block=} block The created block. Undefined for a blank
+ *     event.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
@@ -262,7 +264,7 @@ Blockly.Events.Create.prototype.toJson = function() {
  */
 Blockly.Events.Create.prototype.fromJson = function(json) {
   Blockly.Events.Create.superClass_.fromJson.call(this, json);
-  this.xml = Blockly.Xml.textToDom('<xml>' + json['xml'] + '</xml>').firstChild;
+  this.xml = Blockly.Xml.textToDom(json['xml']);
   this.ids = json['ids'];
 };
 
@@ -273,14 +275,14 @@ Blockly.Events.Create.prototype.fromJson = function(json) {
 Blockly.Events.Create.prototype.run = function(forward) {
   var workspace = this.getEventWorkspace_();
   if (forward) {
-    var xml = Blockly.Xml.utils.createElement('xml');
+    var xml = Blockly.utils.xml.createElement('xml');
     xml.appendChild(this.xml);
     Blockly.Xml.domToWorkspace(xml, workspace);
   } else {
-    for (var i = 0, id; id = this.ids[i]; i++) {
+    for (var i = 0, id; (id = this.ids[i]); i++) {
       var block = workspace.getBlockById(id);
       if (block) {
-        block.dispose(false, false);
+        block.dispose(false);
       } else if (id == this.blockId) {
         // Only complain about root-level block.
         console.warn("Can't uncreate non-existent block: " + id);
@@ -291,27 +293,32 @@ Blockly.Events.Create.prototype.run = function(forward) {
 
 /**
  * Class for a block deletion event.
- * @param {Blockly.Block} block The deleted block.  Null for a blank event.
+ * @param {!Blockly.Block=} opt_block The deleted block.  Undefined for a blank
+ *     event.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
-Blockly.Events.Delete = function(block) {
-  if (!block) {
+Blockly.Events.Delete = function(opt_block) {
+  Blockly.Events.Delete.superClass_.constructor.call(this, opt_block);
+  if (!opt_block) {
     return;  // Blank event to be populated by fromJson.
   }
-  if (block.getParent()) {
+  if (opt_block.getParent()) {
     throw Error('Connected blocks cannot be deleted.');
   }
-  Blockly.Events.Delete.superClass_.constructor.call(this, block);
-
-  if (block.workspace.rendered) {
-    this.oldXml = Blockly.Xml.blockToDomWithXY(block);
-  } else {
-    this.oldXml = Blockly.Xml.blockToDom(block);
+  if (opt_block.isShadow()) {
+    // Respawning shadow blocks is handled via disconnection.
+    this.recordUndo = false;
   }
-  this.ids = Blockly.Events.getDescendantIds_(block);
+
+  if (opt_block.workspace.rendered) {
+    this.oldXml = Blockly.Xml.blockToDomWithXY(opt_block);
+  } else {
+    this.oldXml = Blockly.Xml.blockToDom(opt_block);
+  }
+  this.ids = Blockly.Events.getDescendantIds(opt_block);
 };
-goog.inherits(Blockly.Events.Delete, Blockly.Events.BlockBase);
+Blockly.utils.object.inherits(Blockly.Events.Delete, Blockly.Events.BlockBase);
 
 /**
  * Class for a block deletion event.
@@ -353,17 +360,17 @@ Blockly.Events.Delete.prototype.fromJson = function(json) {
 Blockly.Events.Delete.prototype.run = function(forward) {
   var workspace = this.getEventWorkspace_();
   if (forward) {
-    for (var i = 0, id; id = this.ids[i]; i++) {
+    for (var i = 0, id; (id = this.ids[i]); i++) {
       var block = workspace.getBlockById(id);
       if (block) {
-        block.dispose(false, false);
+        block.dispose(false);
       } else if (id == this.blockId) {
         // Only complain about root-level block.
         console.warn("Can't delete non-existent block: " + id);
       }
     }
   } else {
-    var xml = Blockly.Xml.utils.createElement('xml');
+    var xml = Blockly.utils.xml.createElement('xml');
     xml.appendChild(this.oldXml);
     Blockly.Xml.domToWorkspace(xml, workspace);
   }
@@ -371,21 +378,27 @@ Blockly.Events.Delete.prototype.run = function(forward) {
 
 /**
  * Class for a block move event.  Created before the move.
- * @param {Blockly.Block} block The moved block.  Null for a blank event.
+ * @param {!Blockly.Block=} opt_block The moved block.  Undefined for a blank
+ *     event.
  * @extends {Blockly.Events.BlockBase}
  * @constructor
  */
-Blockly.Events.Move = function(block) {
-  if (!block) {
+Blockly.Events.Move = function(opt_block) {
+  Blockly.Events.Move.superClass_.constructor.call(this, opt_block);
+  if (!opt_block) {
     return;  // Blank event to be populated by fromJson.
   }
-  Blockly.Events.Move.superClass_.constructor.call(this, block);
+  if (opt_block.isShadow()) {
+    // Moving shadow blocks is handled via disconnection.
+    this.recordUndo = false;
+  }
+
   var location = this.currentLocation_();
   this.oldParentId = location.parentId;
   this.oldInputName = location.inputName;
   this.oldCoordinate = location.coordinate;
 };
-goog.inherits(Blockly.Events.Move, Blockly.Events.BlockBase);
+Blockly.utils.object.inherits(Blockly.Events.Move, Blockly.Events.BlockBase);
 
 /**
  * Class for a block move event.  Created before the move.
@@ -431,7 +444,7 @@ Blockly.Events.Move.prototype.fromJson = function(json) {
   if (json['newCoordinate']) {
     var xy = json['newCoordinate'].split(',');
     this.newCoordinate =
-        new goog.math.Coordinate(parseFloat(xy[0]), parseFloat(xy[1]));
+        new Blockly.utils.Coordinate(Number(xy[0]), Number(xy[1]));
   }
 };
 
@@ -452,7 +465,7 @@ Blockly.Events.Move.prototype.recordNew = function() {
  * @private
  */
 Blockly.Events.Move.prototype.currentLocation_ = function() {
-  var workspace = Blockly.Workspace.getById(this.workspaceId);
+  var workspace = this.getEventWorkspace_();
   var block = workspace.getBlockById(this.blockId);
   var location = {};
   var parent = block.getParent();
@@ -475,7 +488,7 @@ Blockly.Events.Move.prototype.currentLocation_ = function() {
 Blockly.Events.Move.prototype.isNull = function() {
   return this.oldParentId == this.newParentId &&
       this.oldInputName == this.newInputName &&
-      goog.math.Coordinate.equals(this.oldCoordinate, this.newCoordinate);
+      Blockly.utils.Coordinate.equals(this.oldCoordinate, this.newCoordinate);
 };
 
 /**
@@ -524,3 +537,12 @@ Blockly.Events.Move.prototype.run = function(forward) {
     }
   }
 };
+
+Blockly.registry.register(Blockly.registry.Type.EVENT, Blockly.Events.CREATE,
+    Blockly.Events.Create);
+Blockly.registry.register(Blockly.registry.Type.EVENT, Blockly.Events.DELETE,
+    Blockly.Events.Delete);
+Blockly.registry.register(Blockly.registry.Type.EVENT, Blockly.Events.CHANGE,
+    Blockly.Events.Change);
+Blockly.registry.register(Blockly.registry.Type.EVENT, Blockly.Events.MOVE,
+    Blockly.Events.Move);

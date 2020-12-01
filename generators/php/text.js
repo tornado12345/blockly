@@ -1,21 +1,7 @@
 /**
  * @license
- * Visual Blocks Language
- *
- * Copyright 2015 Google Inc.
- * https://developers.google.com/blockly/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2015 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
@@ -32,6 +18,12 @@ goog.require('Blockly.PHP');
 Blockly.PHP['text'] = function(block) {
   // Text value.
   var code = Blockly.PHP.quote_(block.getFieldValue('TEXT'));
+  return [code, Blockly.PHP.ORDER_ATOMIC];
+};
+
+Blockly.PHP['text_multiline'] = function(block) {
+  // Text value.
+  var code = Blockly.PHP.multiline_quote_(block.getFieldValue('TEXT'));
   return [code, Blockly.PHP.ORDER_ATOMIC];
 };
 
@@ -65,7 +57,7 @@ Blockly.PHP['text_join'] = function(block) {
 Blockly.PHP['text_append'] = function(block) {
   // Append to a variable in place.
   var varName = Blockly.PHP.variableDB_.getName(
-      block.getFieldValue('VAR'), Blockly.Variables.NAME_TYPE);
+      block.getFieldValue('VAR'), Blockly.VARIABLE_CATEGORY_NAME);
   var value = Blockly.PHP.valueToCode(block, 'TEXT',
       Blockly.PHP.ORDER_ASSIGNMENT) || '\'\'';
   return varName + ' .= ' + value + ';\n';
@@ -174,7 +166,7 @@ Blockly.PHP['text_getSubstring'] = function(block) {
          '    $at1 = strlen($text) - 1 - $at1;',
          '  } else if ($where1 == \'FIRST\') {',
          '    $at1 = 0;',
-         '  } else if ($where1 != \'FROM_START\'){',
+         '  } else if ($where1 != \'FROM_START\') {',
          '    throw new Exception(\'Unhandled option (text_get_substring).\');',
          '  }',
          '  $length = 0;',

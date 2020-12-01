@@ -1,26 +1,12 @@
 /**
  * @license
- * Visual Blocks Editor
- *
- * Copyright 2018 Google Inc.
- * https://developers.google.com/blockly/
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Copyright 2018 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 /**
  * @fileoverview Modern theme.
- * Same colors as classic, but single colored border.
+ * Same colours as classic, but single coloured border.
  */
 'use strict';
 
@@ -28,7 +14,11 @@ goog.provide('Blockly.Themes.Modern');
 
 goog.require('Blockly.Theme');
 
-var defaultBlockStyles = {
+
+// Temporary holding object.
+Blockly.Themes.Modern = {};
+
+Blockly.Themes.Modern.defaultBlockStyles = {
   "colour_blocks": {
     "colourPrimary": "#a5745b",
     "colourSecondary": "#dbc7bd",
@@ -82,35 +72,37 @@ var defaultBlockStyles = {
   }
 };
 
-var categoryStyles = {
-  "colour_category":{
-    "colour": "#a5745b",
+Blockly.Themes.Modern.categoryStyles = {
+  "colour_category": {
+    "colour": "#a5745b"
   },
   "list_category": {
-    "colour": "#745ba5",
+    "colour": "#745ba5"
   },
   "logic_category": {
-    "colour": "#5b80a5",
+    "colour": "#5b80a5"
   },
   "loop_category": {
-    "colour": "#5ba55b",
+    "colour": "#5ba55b"
   },
   "math_category": {
-    "colour": "#5b67a5",
+    "colour": "#5b67a5"
   },
   "procedure_category": {
-    "colour": "#995ba5",
+    "colour": "#995ba5"
   },
   "text_category": {
-    "colour": "#5ba58c",
+    "colour": "#5ba58c"
   },
   "variable_category": {
-    "colour": "#a55b99",
+    "colour": "#a55b99"
   },
-  "variable_dynamic_category":{
-    "colour": "#a55b99",
+  "variable_dynamic_category": {
+    "colour": "#a55b99"
   }
 };
 
-//This style is still being fleshed out and may change.
-Blockly.Themes.Modern = new Blockly.Theme(defaultBlockStyles, categoryStyles);
+// This style is still being fleshed out and may change.
+Blockly.Themes.Modern =
+    new Blockly.Theme('modern', Blockly.Themes.Modern.defaultBlockStyles,
+        Blockly.Themes.Modern.categoryStyles);
